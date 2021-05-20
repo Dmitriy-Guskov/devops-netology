@@ -422,3 +422,47 @@ GGIITT
 
 
 Git 2.30.1.378.g1d4f23            02/08/2021                        GIT-ADD(1)
+
+
+
+
+1.
+
+aefead2207ef7e2aa5dc81a34aedf0cad4c32545
+    Update CHANGELOG.md
+
+
+2.
+tag: v0.12.23
+
+
+3.
+git cat-file -p b8d720f8340221f2146e4e4870bf2ee0bc48f2d5 | awk 'NR > 1 {if(/^parent/){print $2; next}{exit}}'
+
+56cd7859e05c36c06b56d013b55a252d0bb7e158
+9ea88f22fc6269854151c571162c5bcf958bee2b
+
+4
+5c619ca1baf2e21a155fcdb4c264cc9e24a2a353
+06275647e2b53d97d4f0a19a0fec11f6d69820b5
+d5f9411f5108260320064349b757f55c09bc4b80
+4b6d06cc5dcb78af637bbb19c198faff37a066ed
+dd01a35078f040ca984cdd349f18d0b67e486c35
+225466bc3e5f35baa5d07197bbc079345b77525e
+
+
+5
+commit 5af1e6234ab6da412fb8637393c5a17a1b293663
+Author: Martin Atkins <mart@degeneration.co.uk>
+Date:   Tue Apr 21 16:28:59 2020 -0700
+
+6
+35a058fb3 main: configure credentials from the CLI config file
+c0b176109 prevent log output during init
+8364383c3 Push plugin discovery down into command package
+
+7
+Author: Martin Atkins mart@degeneration.co.uk
+
+
+
