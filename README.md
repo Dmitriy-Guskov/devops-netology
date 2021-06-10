@@ -1,98 +1,161 @@
-Домашнее задание к занятию "3.2. Работа в терминале, лекция 2"
+Домашнее задание к занятию 3.3.
+Операционные системы, лекция 1
 
+1. Какой системный вызов делает команда cd? В прошлом ДЗ мы выяснили, что cd не является самостоятельной программой, это shell builtin, поэтому запустить strace непосредственно на cd не получится. Тем не менее, вы можете запустить strace на /bin/bash -c 'cd /tmp'. В этом случае вы увидите полный список системных вызовов, которые делает сам bashпри старте. Вам нужно найти тот единственный, который относится именно к cd.
 
-1. Какого типа команда cd? Попробуйте объяснить, почему она именно такого типа; опишите ход своих мыслей, если считаете что она могла бы быть другого типа.
+strace /bin/bash -c 'cd /tmp'
 
-cd – “built in” команда.
-Переменные среды родительского процесса не могут быть изменены дочерним процессом. Если оболочка запустила /bin/cd, который изменил PWD, это повлияет только на /bin/cd и не изменит PWD оболочки.
-
-
-
-2. Какая альтернатива без pipe команде grep <some_string> <some_file> | wc -l? man grep поможет в ответе на этот вопрос. Ознакомьтесь с документом о других подобных некорректных вариантах использования pipe.
-
-grep -c <some_string> <some_file>
+stat("/tmp", {st_mode=S_IFDIR|S_ISVTX|0777, st_size=4096, ...}) = 0
+chdir("/tmp")                           = 0
 
 
 
-3. Какой процесс с PID 1 является родителем для всех процессов в вашей виртуальной машине Ubuntu 20.04?
+2. Попробуйте использовать команду file на объекты разных типов на файловой системе. Например:
+vagrant@netology1:~$ file /dev/tty
+/dev/tty: character special (5/0)
+vagrant@netology1:~$ file /dev/sda
+/dev/sda: block special (8/0)
+vagrant@netology1:~$ file /bin/bash
+/bin/bash: ELF 64-bit LSB shared object, x86-64
+Используя strace выясните, где находится база данных file на основании которой она делает свои догадки.
 
-ps -q 1 -o comm=
-systemd
+strace file -c '/bin/bash'
 
+нашел 
+openat(AT_FDCWD, "/usr/share/misc/magic.mgc", O_RDONLY) = 3
 
-4. Как будет выглядеть команда, которая перенаправит вывод stderr ls на другую сессию терминала?
+смотрим что в каталоге
+ls -la /usr/share/misc/
 
-ls 2>/dev/pts/XX
+Оп, а это сслыка! 
 
-
-5. Получится ли одновременно передать команде файл на stdin и вывести ее stdout в другой файл? Приведите работающий пример.
-
-ls <file0.txt >file1.txt
-
-
-6. Получится ли вывести находясь в графическом режиме данные из PTY в какой-либо из эмуляторов TTY? Сможете ли вы наблюдать выводимые данные?
-
-cat /dev/tty > /dev/pts/0
-
-
-
-7. Выполните команду bash 5>&1. К чему она приведет? Что будет, если вы выполните echo netology > /proc/$$/fd/5? Почему так происходит?
-
-bash 5>&1 создаст «пятый поток» и перенаправит в stdout
-echo netology > /proc/$$/fd/5 – отправит «нетологию» в «пятый поток»
-
-
-8. Получится ли в качестве входного потока для pipe использовать только stderr команды, не потеряв при этом отображение stdout на pty? Напоминаем: по умолчанию через pipe передается только stdout команды слева от | на stdin команды справа. Это можно сделать, поменяв стандартные потоки местами через промежуточный новый дескриптор, который вы научились создавать в предыдущем вопросе.
-
-cat 3>&1 1>&2 2>&3
-rm file11.txt 3>&2 2>&1 1>&3 | cat > file.txt
-
-
-9. Что выведет команда cat /proc/$$/environ? Как еще можно получить аналогичный по содержанию вывод?
-
-Покажет переменные окружения для текущего процесса bash
-$$ можно заменить PID’ом bash’a.
-или
-ps e -ww -p $$
-
-
-10. Используя man, опишите что доступно по адресам /proc/<PID>/cmdline, /proc/<PID>/exe.
-
-cmdline - файл, содержащий полную строку команды процесса
-exe - символическая ссылка на путь, по которому запущен процесс
+magic.mgc -> ../../lib/file/magic.mgc
 
 
 
-11. Узнайте, какую наиболее старшую версию набора инструкций SSE поддерживает ваш процессор с помощью /proc/cpuinfo.
+3. Предположим, приложение пишет лог в текстовый файл. Этот файл оказался удален (deleted в lsof), однако возможности сигналом сказать приложению переоткрыть файлы или просто перезапустить приложение – нет. Так как приложение продолжает писать в удаленный файл, место на диске постепенно заканчивается. Основываясь на знаниях о перенаправлении потоков предложите способ обнуления открытого удаленного файла (чтобы освободить место на файловой системе).
 
-grep sse /proc/cpuinfo
-sse4_2
-
-
-
-12. При открытии нового окна терминала и vagrant ssh создается новая сессия и выделяется pty. Это можно подтвердить командой tty, которая упоминалась в лекции 3.2. Однако:
-vagrant@netology1:~$ ssh localhost 'tty'
-not a tty
-Почитайте, почему так происходит, и как изменить поведение.
-
-для ssh нет доступного терминала, нужна опция t, но у меня почему-то работает и так.
-
-
-13. Бывает, что есть необходимость переместить запущенный процесс из одной сессии в другую. Попробуйте сделать это, воспользовавшись reptyr. Например, так можно перенести в screen процесс, который вы запустили по ошибке в обычной SSH-сессии.
-
-Ставим утилиту - sudo apt-get install reptyr
-Запускаем вторую сессию терминала
-Открываем, например, nano
-Во втором терминале ps -ef | grep nano
-sudo reptyr -T PID
+Отправим в никуда:
+cat /dev/null > somefile.log
 
 
 
+4. Занимают ли зомби-процессы какие-то ресурсы в ОС (CPU, RAM, IO)?
 
-14. sudo echo string > /root/new_file не даст выполнить перенаправление под обычным пользователем, так как перенаправлением занимается процесс shell'а, который запущен без sudo под вашим пользователем. Для решения данной проблемы можно использовать конструкцию echo string | sudo tee /root/new_file. Узнайте что делает команда tee и почему в отличие от sudo echo команда с sudo tee будет работать.
+Зомби занимают место в таблице процессов, которая ограничена для каждого пользователя и для системы в целом.
 
-tee читает из стандартного ввода и записывает как в стандартный вывод так и в один или несколько файлов одновременно.
-Ошибка в первом случае будет из-за того, что sudo не выполняет перенаправление вывода, выполнится как непривилегированный пользователь.
-Во втором случае tee получит вывод команды echo, повысит права на sudo и запишет в файл
+5. В iovisor BCC есть утилита opensnoop:
+root@vagrant:~# dpkg -L bpfcc-tools | grep sbin/opensnoop
+/usr/sbin/opensnoop-bpfcc
+На какие файлы вы увидели вызовы группы open за первую секунду работы утилиты? Воспользуйтесь пакетом bpfcc-toolsдля Ubuntu 20.04. Дополнительные сведения по установке.
 
+vagrant@vagrant:~$ sudo opensnoop-bpfcc -d 5
+
+PID    COMM               FD ERR PATH
+769    vminfo              6   0 /var/run/utmp
+573    dbus-daemon        -1   2 /usr/local/share/dbus-1/system-services
+573    dbus-daemon        18   0 /usr/share/dbus-1/system-services
+573    dbus-daemon        -1   2 /lib/dbus-1/system-services
+573    dbus-daemon        18   0 /var/lib/snapd/dbus-1/system-services/
+769    vminfo              6   0 /var/run/utmp
+573    dbus-daemon        -1   2 /usr/local/share/dbus-1/system-services
+573    dbus-daemon        18   0 /usr/share/dbus-1/system-services
+573    dbus-daemon        -1   2 /lib/dbus-1/system-services
+573    dbus-daemon        18   0 /var/lib/snapd/dbus-1/system-services/
+
+Поймались vminfo и dbus-daemon
+
+
+6. Какой системный вызов использует uname -a? Приведите цитату из man по этому системному вызову, где описывается альтернативное местоположение в /proc, где можно узнать версию ядра и релиз ОС.
+
+Запускаем
+sudo opensnoop-bpfcc -d 50
+
+рядом в консоли открываем uname -a
+
+получаем:
+2010   uname               3   0 /etc/ld.so.cache
+2010   uname               3   0 /lib/x86_64-linux-gnu/libc.so.6
+2010   uname               3   0 /usr/lib/locale/locale-archive
+2010   uname               3   0 /usr/share/locale/locale.alias
+2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_IDENTIFICATION
+2010   uname               3   0 /usr/lib/x86_64-linux-gnu/gconv/gconv-modules.cache
+2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_MEASUREMENT
+2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_TELEPHONE
+2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_ADDRESS
+2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_NAME
+2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_PAPER
+2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_MESSAGES
+2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_MESSAGES/SYS_LC_MESSAGES
+2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_MONETARY
+2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_COLLATE
+2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_TIME
+2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_NUMERIC
+2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_CTYPE
+
+Можно strace uname -a
+
+man proc
+/proc/version
+              This string identifies the kernel version that is currently running.  It  includes  the
+              contents  of  /proc/sys/kernel/ostype,  /proc/sys/kernel/osrelease  and  /proc/sys/ker‐
+              nel/version.  For example:
+
+        Linux version 1.0.9 (quinlan@phaze) #1 Sat May 14 01:51:54 EDT 1994
+
+
+
+
+7. Чем отличается последовательность команд через ; и через && в bash? Например:
+root@netology1:~# test -d /tmp/some_dir; echo Hi
+Hi
+root@netology1:~# test -d /tmp/some_dir && echo Hi
+root@netology1:~#
+Есть ли смысл использовать в bash &&, если применить set -e?
+
+
+«;» применяется в случае последовательного выполнения команд
+«&&» - последующая комманда выполняется только после успешного выполнения предыдущей
+При использовании опции «е» скрипт остановится при возникновении ошибки, будем считать, что в такой постановке вопроса смысла использовать && нет, но мне кажется есть здесь некий подвох ))
+
+
+8. Из каких опций состоит режим bash set -euxo pipefail и почему его хорошо было бы использовать в сценариях?
+
+-euxo можно представить как набор из 4 опций:
+-e стоп при ошибке
+-u bash обрабатывает неустановленные переменные как ошибку и немедленно завершает работу
+-x печатает команду перед ее выполнением, удобно при отладке
+-o проверка команд во всех пайпах
+
+
+
+9. Используя -o stat для ps, определите, какой наиболее часто встречающийся статус у процессов в системе. В man psознакомьтесь (/PROCESS STATE CODES) что значат дополнительные к основной заглавной буквы статуса процессов. Его можно не учитывать при расчете (считать S, Ss или Ssl равнозначными).
+
+ps -e -o stat | grep -c -i s
+или так ps -e -o stat | grep -c S
+48
+
+
+PROCESS STATE CODES
+       Here are the different values that the s, stat and state output specifiers (header "STAT" or
+       "S") will display to describe the state of a process:
+
+               D    uninterruptible sleep (usually IO)
+               I    Idle kernel thread
+               R    running or runnable (on run queue)
+               S    interruptible sleep (waiting for an event to complete)
+               T    stopped by job control signal
+               t    stopped by debugger during the tracing
+               W    paging (not valid since the 2.6.xx kernel)
+               X    dead (should never be seen)
+               Z    defunct ("zombie") process, terminated but not reaped by its parent
+
+       For BSD formats and when the stat keyword is used, additional characters may be displayed:
+
+               <    high-priority (not nice to other users)
+               N    low-priority (nice to other users)
+               L    has pages locked into memory (for real-time and custom IO)
+               s    is a session leader
+               l    is multi-threaded (using CLONE_THREAD, like NPTL pthreads do)
+               +    is in the foreground process group
 
