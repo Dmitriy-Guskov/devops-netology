@@ -38,6 +38,29 @@ magic.mgc -> ../../lib/file/magic.mgc
 Отправим в никуда:
 cat /dev/null > somefile.log
 
+upd:
+Откроем чем-нибудь файл, чтобы заблокировать его, например, vim
+Далее 
+vagrant@vagrant:~$ ls
+1.log  echo  file.iso  file.txt  test  ttys001
+vagrant@vagrant:~$ rm -f file.iso 
+vagrant@vagrant:~$ lsof |grep deleted
+vim       1198                       vagrant    3r      REG              253,0 1073741824    2883611 /home/vagrant/file.iso (deleted)
+vagrant@vagrant:~$ ls -la /proc/1198/fd
+total 0
+dr-x------ 2 vagrant vagrant  0 Jun 11 14:51 .
+dr-xr-xr-x 9 vagrant vagrant  0 Jun 11 14:51 ..
+lrwx------ 1 vagrant vagrant 64 Jun 11 14:52 0 -> /dev/pts/0
+lrwx------ 1 vagrant vagrant 64 Jun 11 14:52 1 -> /dev/pts/0
+lrwx------ 1 vagrant vagrant 64 Jun 11 14:52 2 -> /dev/pts/0
+lr-x------ 1 vagrant vagrant 64 Jun 11 14:51 3 -> '/home/vagrant/file.iso (deleted)'
+lrwx------ 1 vagrant vagrant 64 Jun 11 14:52 4 -> /home/vagrant/.file.iso.swp
+vagrant@vagrant:~$ cat /dev/null >/proc/1198/fd/3
+
+в vim видим событие "file.iso" [noeol] 1L, 659619840CKilled
+
+
+
 
 
 4. Занимают ли зомби-процессы какие-то ресурсы в ОС (CPU, RAM, IO)?
