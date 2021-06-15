@@ -1,184 +1,194 @@
-Домашнее задание к занятию 3.3.
-Операционные системы, лекция 1
+Домашнее задание к занятию "3.4. Операционные системы, лекция 2"
+1.	На лекции мы познакомились с node_exporter. В демонстрации его исполняемый файл запускался в background. Этого достаточно для демо, но не для настоящей production-системы, где процессы должны находиться под внешним управлением. Используя знания из лекции по systemd, создайте самостоятельно простой unit-файл для node_exporter:
+o	поместите его в автозагрузку,
+o	предусмотрите возможность добавления опций к запускаемому процессу через внешний файл (посмотрите, например, на systemctl cat cron),
+o	удостоверьтесь, что с помощью systemctl процесс корректно стартует, завершается, а после перезагрузки автоматически поднимается.
+sudo wget https://github.com/prometheus/node_exporter/releases/download/v1.1.2/node_exporter-1.1.2.linux-amd64.tar.gz
+tar -xvf node_exporter*
+sudo cp node_exporter*/node_exporter /usr/local/bin
+sudo useradd -rs /bin/false node_exporter
+sudo nano /etc/systemd/system/node_exporter.service
+ [Unit]
+Description=Node Exporter
+[Service]
+User=node_exporter
+EnvironmentFile=/etc/node_exporter
+ExecStart=/usr/local/bin/node_exporter $OPTIONS
+[Install]
+WantedBy=multi-user.target
 
-1. Какой системный вызов делает команда cd? В прошлом ДЗ мы выяснили, что cd не является самостоятельной программой, это shell builtin, поэтому запустить strace непосредственно на cd не получится. Тем не менее, вы можете запустить strace на /bin/bash -c 'cd /tmp'. В этом случае вы увидите полный список системных вызовов, которые делает сам bashпри старте. Вам нужно найти тот единственный, который относится именно к cd.
+sudo nano /etc/node_exporter
 
-strace /bin/bash -c 'cd /tmp'
+OPTIONS="–collector.textfile.directory /var/lib/node_exporter/textfile_collector"
 
-stat("/tmp", {st_mode=S_IFDIR|S_ISVTX|0777, st_size=4096, ...}) = 0
-chdir("/tmp")                           = 0
+sudo systemctl daemon-reload
+sudo systemctl start node_exporter
+sudo systemctl status node_exporter
+vagrant@vagrant:~$ sudo systemctl status node_exporter
+● node_exporter.service - Node Exporter
+     Loaded: loaded (/etc/systemd/system/node_exporter.service; disabled; vendor preset: enabled)
+     Active: active (running) since Tue 2021-06-15 18:41:40 UTC; 6s ago
+   Main PID: 1355 (node_exporter)
+      Tasks: 3 (limit: 1074)
+     Memory: 2.0M
+     CGroup: /system.slice/node_exporter.service
+             └─1355 /usr/local/bin/node_exporter --collector.textfile.directory /var/lib/node_exporter/textfile_c>
 
-
-
-2. Попробуйте использовать команду file на объекты разных типов на файловой системе. Например:
-vagrant@netology1:~$ file /dev/tty
-/dev/tty: character special (5/0)
-vagrant@netology1:~$ file /dev/sda
-/dev/sda: block special (8/0)
-vagrant@netology1:~$ file /bin/bash
-/bin/bash: ELF 64-bit LSB shared object, x86-64
-Используя strace выясните, где находится база данных file на основании которой она делает свои догадки.
-
-strace file -c '/bin/bash'
-
-нашел 
-openat(AT_FDCWD, "/usr/share/misc/magic.mgc", O_RDONLY) = 3
-
-смотрим что в каталоге
-ls -la /usr/share/misc/
-
-Оп, а это сслыка! 
-
-magic.mgc -> ../../lib/file/magic.mgc
-
-
-
-3. Предположим, приложение пишет лог в текстовый файл. Этот файл оказался удален (deleted в lsof), однако возможности сигналом сказать приложению переоткрыть файлы или просто перезапустить приложение – нет. Так как приложение продолжает писать в удаленный файл, место на диске постепенно заканчивается. Основываясь на знаниях о перенаправлении потоков предложите способ обнуления открытого удаленного файла (чтобы освободить место на файловой системе).
-
-Отправим в никуда:
-cat /dev/null > somefile.log
-
-upd:
-Откроем чем-нибудь файл, чтобы заблокировать его, например, vim
-Далее 
-vagrant@vagrant:~$ ls
-1.log  echo  file.iso  file.txt  test  ttys001
-vagrant@vagrant:~$ rm -f file.iso 
-vagrant@vagrant:~$ lsof |grep deleted
-vim       1198                       vagrant    3r      REG              253,0 1073741824    2883611 /home/vagrant/file.iso (deleted)
-vagrant@vagrant:~$ ls -la /proc/1198/fd
-total 0
-dr-x------ 2 vagrant vagrant  0 Jun 11 14:51 .
-dr-xr-xr-x 9 vagrant vagrant  0 Jun 11 14:51 ..
-lrwx------ 1 vagrant vagrant 64 Jun 11 14:52 0 -> /dev/pts/0
-lrwx------ 1 vagrant vagrant 64 Jun 11 14:52 1 -> /dev/pts/0
-lrwx------ 1 vagrant vagrant 64 Jun 11 14:52 2 -> /dev/pts/0
-lr-x------ 1 vagrant vagrant 64 Jun 11 14:51 3 -> '/home/vagrant/file.iso (deleted)'
-lrwx------ 1 vagrant vagrant 64 Jun 11 14:52 4 -> /home/vagrant/.file.iso.swp
-vagrant@vagrant:~$ cat /dev/null >/proc/1198/fd/3
-
-в vim видим событие "file.iso" [noeol] 1L, 659619840CKilled
+Jun 15 18:41:40 vagrant node_exporter[1355]: level=info ts=2021-06-15T18:41:40.999Z caller=node_exporter.go:113 c>
+Jun 15 18:41:41 vagrant node_exporter[1355]: level=info ts=2021-06-15T18:41:41.000Z caller=node_exporter.go:113 c>
+Jun 15 18:41:41 vagrant node_exporter[1355]: level=info ts=2021-06-15T18:41:41.000Z caller=node_exporter.go:113 c>
+Jun 15 18:41:41 vagrant node_exporter[1355]: level=info ts=2021-06-15T18:41:41.000Z caller=node_exporter.go:113 c>
+Jun 15 18:41:41 vagrant node_exporter[1355]: level=info ts=2021-06-15T18:41:41.000Z caller=node_exporter.go:113 c>
+Jun 15 18:41:41 vagrant node_exporter[1355]: level=info ts=2021-06-15T18:41:41.000Z caller=node_exporter.go:113 c>
+Jun 15 18:41:41 vagrant node_exporter[1355]: level=info ts=2021-06-15T18:41:41.000Z caller=node_exporter.go:113 c>
+Jun 15 18:41:41 vagrant node_exporter[1355]: level=info ts=2021-06-15T18:41:41.000Z caller=node_exporter.go:113 c>
+Jun 15 18:41:41 vagrant node_exporter[1355]: level=info ts=2021-06-15T18:41:41.001Z caller=node_exporter.go:195 m>
+Jun 15 18:41:41 vagrant node_exporter[1355]: level=info ts=2021-06-15T18:41:41.001Z caller=tls_config.go:191 msg=>
 
 
+2.	Ознакомьтесь с опциями node_exporter и выводом /metrics по-умолчанию. Приведите несколько опций, которые вы бы выбрали для базового мониторинга хоста по CPU, памяти, диску и сети.
+
+vagrant@vagrant:~$ curl http://localhost:9100/metrics |grep cpu
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0# HELP go_memstats_gc_cpu_fraction The fraction of this program's available CPU time used by the GC since the program started.
+# TYPE go_memstats_gc_cpu_fraction gauge
+go_memstats_gc_cpu_fraction 0
+# HELP node_cpu_guest_seconds_total Seconds the CPUs spent in guests (VMs) for each mode.
+# TYPE node_cpu_guest_seconds_total counter
+node_cpu_guest_seconds_total{cpu="0",mode="nice"} 0
+node_cpu_guest_seconds_total{cpu="0",mode="user"} 0
+# HELP node_cpu_seconds_total Seconds the CPUs spent in each mode.
+# TYPE node_cpu_seconds_total counter
+node_cpu_seconds_total{cpu="0",mode="idle"} 2254.79
+node_cpu_seconds_total{cpu="0",mode="iowait"} 1.43
+node_cpu_seconds_total{cpu="0",mode="irq"} 0
+node_cpu_seconds_total{cpu="0",mode="nice"} 0.04
+node_cpu_seconds_total{cpu="0",mode="softirq"} 0.12
+node_cpu_seconds_total{cpu="0",mode="steal"} 0
+node_cpu_seconds_total{cpu="0",mode="system"} 3.8
+node_cpu_seconds_total{cpu="0",mode="user"} 2.71
+# HELP node_memory_Percpu_bytes Memory information field Percpu_bytes.
+# TYPE node_memory_Percpu_bytes gauge
+node_memory_Percpu_bytes 638976
+# HELP node_pressure_cpu_waiting_seconds_total Total time in seconds that processes have waited for CPU time
+# TYPE node_pressure_cpu_waiting_seconds_total counter
+node_pressure_cpu_waiting_seconds_total 4.904951
+node_schedstat_running_seconds_total{cpu="0"} 11.346300779
+node_schedstat_timeslices_total{cpu="0"} 496971
+node_schedstat_waiting_seconds_total{cpu="0"} 23.456731203
+node_scrape_collector_duration_seconds{collector="cpu"} 0.000144411
+node_scrape_collector_duration_seconds{collector="cpufreq"} 4.1248e-05
+node_scrape_collector_success{collector="cpu"} 1
+node_scrape_collector_success{collector="cpufreq"} 1
+node_softnet_dropped_total{cpu="0"} 0
+node_softnet_processed_total{cpu="0"} 7755
+node_softnet_times_squeezed_total{cpu="0"} 0
+# HELP process_cpu_seconds_total Total user and system CPU time spent in seconds.
+# TYPE process_cpu_seconds_total counter
+process_cpu_seconds_total 0
+100 58024    0 58024    0     0  3148k      0 --:--:-- --:--:-- --:--:-- 3148k
 
 
+3.	Установите в свою виртуальную машину Netdata. Воспользуйтесь готовыми пакетами для установки (sudo apt install -y netdata). После успешной установки:
+o	в конфигурационном файле /etc/netdata/netdata.conf в секции [web] замените значение с localhost на bind to = 0.0.0.0,
+o	добавьте в Vagrantfile проброс порта Netdata на свой локальный компьютер и сделайте vagrant reload:
+config.vm.network "forwarded_port", guest: 19999, host: 19999
+После успешной перезагрузки в браузере на своем ПК (не в виртуальной машине) вы должны суметь зайти на localhost:19999. Ознакомьтесь с метриками, которые по умолчанию собираются Netdata и с комментариями, которые даны к этим метрикам.
 
-4. Занимают ли зомби-процессы какие-то ресурсы в ОС (CPU, RAM, IO)?
-
-Зомби занимают место в таблице процессов, которая ограничена для каждого пользователя и для системы в целом.
-
-5. В iovisor BCC есть утилита opensnoop:
-root@vagrant:~# dpkg -L bpfcc-tools | grep sbin/opensnoop
-/usr/sbin/opensnoop-bpfcc
-На какие файлы вы увидели вызовы группы open за первую секунду работы утилиты? Воспользуйтесь пакетом bpfcc-toolsдля Ubuntu 20.04. Дополнительные сведения по установке.
-
-vagrant@vagrant:~$ sudo opensnoop-bpfcc -d 5
-
-PID    COMM               FD ERR PATH
-769    vminfo              6   0 /var/run/utmp
-573    dbus-daemon        -1   2 /usr/local/share/dbus-1/system-services
-573    dbus-daemon        18   0 /usr/share/dbus-1/system-services
-573    dbus-daemon        -1   2 /lib/dbus-1/system-services
-573    dbus-daemon        18   0 /var/lib/snapd/dbus-1/system-services/
-769    vminfo              6   0 /var/run/utmp
-573    dbus-daemon        -1   2 /usr/local/share/dbus-1/system-services
-573    dbus-daemon        18   0 /usr/share/dbus-1/system-services
-573    dbus-daemon        -1   2 /lib/dbus-1/system-services
-573    dbus-daemon        18   0 /var/lib/snapd/dbus-1/system-services/
-
-Поймались vminfo и dbus-daemon
-
-
-6. Какой системный вызов использует uname -a? Приведите цитату из man по этому системному вызову, где описывается альтернативное местоположение в /proc, где можно узнать версию ядра и релиз ОС.
-
-Запускаем
-sudo opensnoop-bpfcc -d 50
-
-рядом в консоли открываем uname -a
-
-получаем:
-2010   uname               3   0 /etc/ld.so.cache
-2010   uname               3   0 /lib/x86_64-linux-gnu/libc.so.6
-2010   uname               3   0 /usr/lib/locale/locale-archive
-2010   uname               3   0 /usr/share/locale/locale.alias
-2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_IDENTIFICATION
-2010   uname               3   0 /usr/lib/x86_64-linux-gnu/gconv/gconv-modules.cache
-2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_MEASUREMENT
-2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_TELEPHONE
-2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_ADDRESS
-2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_NAME
-2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_PAPER
-2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_MESSAGES
-2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_MESSAGES/SYS_LC_MESSAGES
-2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_MONETARY
-2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_COLLATE
-2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_TIME
-2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_NUMERIC
-2010   uname               3   0 /usr/lib/locale/C.UTF-8/LC_CTYPE
-
-Можно strace uname -a
-
-man proc
-/proc/version
-              This string identifies the kernel version that is currently running.  It  includes  the
-              contents  of  /proc/sys/kernel/ostype,  /proc/sys/kernel/osrelease  and  /proc/sys/ker‐
-              nel/version.  For example:
-
-        Linux version 1.0.9 (quinlan@phaze) #1 Sat May 14 01:51:54 EDT 1994
+vagrant@vagrant:~$ sudo apt install -y netdata
+Reading package lists... Done
+Building dependency tree       
+Reading state information... Done
+The following additional packages will be installed:
+  fonts-font-awesome fonts-glyphicons-halflings freeipmi-common libc-ares2 libfreeipmi17 libipmimonitoring6
+  libjs-bootstrap libjudydebian1 libnetfilter-acct1 libnode64 netdata-core netdata-plugins-bash
+  netdata-plugins-nodejs netdata-plugins-python netdata-web nodejs nodejs-doc
+Suggested packages:
+  freeipmi-tools apcupsd hddtemp lm-sensors nc fping python3-psycopg2 python3-pymysql npm
+The following NEW packages will be installed:
+  fonts-font-awesome fonts-glyphicons-halflings freeipmi-common libc-ares2 libfreeipmi17 libipmimonitoring6
+  libjs-bootstrap libjudydebian1 libnetfilter-acct1 libnode64 netdata netdata-core netdata-plugins-bash
+  netdata-plugins-nodejs netdata-plugins-python netdata-web nodejs nodejs-doc
+0 upgraded, 18 newly installed, 0 to remove and 0 not upgraded.
 
 
 
+vagrant@vagrant:~$ sudo systemctl status netdata
+● netdata.service - netdata - Real-time performance monitoring
+     Loaded: loaded (/lib/systemd/system/netdata.service; enabled; vendor preset: enabled)
+     Active: active (running) since Tue 2021-06-15 19:00:45 UTC; 3min 26s ago
+       Docs: man:netdata
+             file:///usr/share/doc/netdata/html/index.html
+             https://github.com/netdata/netdata
+   Main PID: 763 (netdata)
+      Tasks: 21 (limit: 1074)
+     Memory: 69.3M
+     CGroup: /system.slice/netdata.service
+             ├─763 /usr/sbin/netdata -D
+             ├─837 /usr/lib/netdata/plugins.d/nfacct.plugin 1
+             ├─840 bash /usr/lib/netdata/plugins.d/tc-qos-helper.sh 1
+             └─843 /usr/lib/netdata/plugins.d/apps.plugin 1
 
-7. Чем отличается последовательность команд через ; и через && в bash? Например:
-root@netology1:~# test -d /tmp/some_dir; echo Hi
-Hi
-root@netology1:~# test -d /tmp/some_dir && echo Hi
-root@netology1:~#
-Есть ли смысл использовать в bash &&, если применить set -e?
-
-
-«;» применяется в случае последовательного выполнения команд
-«&&» - последующая комманда выполняется только после успешного выполнения предыдущей
-При использовании опции «е» скрипт остановится при возникновении ошибки, будем считать, что в такой постановке вопроса смысла использовать && нет, но мне кажется есть здесь некий подвох ))
-
-
-8. Из каких опций состоит режим bash set -euxo pipefail и почему его хорошо было бы использовать в сценариях?
-
--euxo можно представить как набор из 4 опций:
--e стоп при ошибке
--u bash обрабатывает неустановленные переменные как ошибку и немедленно завершает работу
--x печатает команду перед ее выполнением, удобно при отладке
--o проверка команд во всех пайпах
+Jun 15 19:00:45 vagrant systemd[1]: Started netdata - Real-time performance monitoring.
+Jun 15 19:00:45 vagrant netdata[763]: SIGNAL: Not enabling reaper
+Jun 15 19:00:45 vagrant netdata[763]: 2021-06-15 19:00:45: netdata INFO  : MAIN : SIGNAL: Not enabling reaper
 
 
 
-9. Используя -o stat для ps, определите, какой наиболее часто встречающийся статус у процессов в системе. В man psознакомьтесь (/PROCESS STATE CODES) что значат дополнительные к основной заглавной буквы статуса процессов. Его можно не учитывать при расчете (считать S, Ss или Ssl равнозначными).
+4.	Можно ли по выводу dmesg понять, осознает ли ОС, что загружена не на настоящем оборудовании, а на системе виртуализации?
 
-ps -e -o stat | grep -c -i s
-или так ps -e -o stat | grep -c S
-48
+vagrant@vagrant:~$ sudo dmesg |grep vir
+[    0.003033] CPU MTRRs all blank - virtualized system.
+[    0.132066] Booting paravirtualized kernel on KVM
+[    4.359835] systemd[1]: Detected virtualization oracle.
 
 
-PROCESS STATE CODES
-       Here are the different values that the s, stat and state output specifiers (header "STAT" or
-       "S") will display to describe the state of a process:
+5.	Как настроен sysctl fs.nr_open на системе по-умолчанию? Узнайте, что означает этот параметр. Какой другой существующий лимит не позволит достичь такого числа (ulimit --help)?
 
-               D    uninterruptible sleep (usually IO)
-               I    Idle kernel thread
-               R    running or runnable (on run queue)
-               S    interruptible sleep (waiting for an event to complete)
-               T    stopped by job control signal
-               t    stopped by debugger during the tracing
-               W    paging (not valid since the 2.6.xx kernel)
-               X    dead (should never be seen)
-               Z    defunct ("zombie") process, terminated but not reaped by its parent
+https://access.redhat.com/solutions/1479623
+•	The default value fs.nr_open is 1024*1024 = 1048576.
+•	The maximum value of fs.nr_open is limited to sysctl_nr_open_max in kernel, which is 2147483584 on x86_64.
 
-       For BSD formats and when the stat keyword is used, additional characters may be displayed:
+vagrant@vagrant:~$ sysctl fs.nr_open
+fs.nr_open = 1048576
+vagrant@vagrant:~$ sudo sysctl -w fs.nr_open=2147483584
+fs.nr_open = 2147483584
+vagrant@vagrant:~$ ulimit -n 2147483584
+-bash: ulimit: open files: cannot modify limit: Operation not permitted
+vagrant@vagrant:~$ sudo -i
+root@vagrant:~# ulimit -n 2147483584
+root@vagrant:~# ulimit -n
+2147483584
+root@vagrant:~# sysctl -w fs.nr_open=2147483585
+sysctl: setting key "fs.nr_open": Invalid argument
 
-               <    high-priority (not nice to other users)
-               N    low-priority (nice to other users)
-               L    has pages locked into memory (for real-time and custom IO)
-               s    is a session leader
-               l    is multi-threaded (using CLONE_THREAD, like NPTL pthreads do)
-               +    is in the foreground process group
+
+
+
+6.	Запустите любой долгоживущий процесс (не ls, который отработает мгновенно, а, например, sleep 1h) в отдельном неймспейсе процессов; покажите, что ваш процесс работает под PID 1 через nsenter. Для простоты работайте в данном задании под root (sudo -i). Под обычным пользователем требуются дополнительные опции (--map-root-user) и т.д.
+
+root@vagrant:~# screen
+root@vagrant:~# unshare -f --pid --mount-proc sleep 1h
+
+vagrant@vagrant:~$ ps -a |grep sleep
+   1582 pts/0    00:00:00 sleep
+vagrant@vagrant:~$ sudo -i
+root@vagrant:~# nsenter --target 1582 --pid --mount
+root@vagrant:/# ps -aux |grep sleep
+root           1  0.0  0.0   9828   528 pts/0    S+   19:53   0:00 sleep 1h
+root          12  0.0  0.0  10760   724 pts/1    S+   19:56   0:00 grep --color=auto sleep
+
+
+
+7.	Найдите информацию о том, что такое :(){ :|:& };:. Запустите эту команду в своей виртуальной машине Vagrant с Ubuntu 20.04 (это важно, поведение в других ОС не проверялось). Некоторое время все будет "плохо", после чего (минуты) – ОС должна стабилизироваться. Вызов dmesg расскажет, какой механизм помог автоматической стабилизации. Как настроен этот механизм по-умолчанию, и как изменить число процессов, которое можно создать в сессии?
+
+:(){:|:&};: -Fork Bomb
+Создаём функцию, которая циклически удваивается и не может закончится.
+
+Результат самовостановления системы по ограничению количества сесий на пользователя.
+root@vagrant:/# journalctl -f
+-- Logs begin at Thu 2021-05-20 19:09:03 UTC. --
+Jun 15 20:02:45 vagrant kernel: cgroup: fork rejected by pids controller in /user.slice/user-1000.slice/session-6.scope
+
 
