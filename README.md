@@ -3,27 +3,50 @@
 o	поместите его в автозагрузку,
 o	предусмотрите возможность добавления опций к запускаемому процессу через внешний файл (посмотрите, например, на systemctl cat cron),
 o	удостоверьтесь, что с помощью systemctl процесс корректно стартует, завершается, а после перезагрузки автоматически поднимается.
+
+
 sudo wget https://github.com/prometheus/node_exporter/releases/download/v1.1.2/node_exporter-1.1.2.linux-amd64.tar.gz
+
 tar -xvf node_exporter*
+
 sudo cp node_exporter*/node_exporter /usr/local/bin
+
 sudo useradd -rs /bin/false node_exporter
+
 sudo nano /etc/systemd/system/node_exporter.service
+
+
  [Unit]
+
 Description=Node Exporter
+
 [Service]
+
 User=node_exporter
+
 EnvironmentFile=/etc/node_exporter
+
 ExecStart=/usr/local/bin/node_exporter $OPTIONS
+
 [Install]
+
 WantedBy=multi-user.target
+
 
 sudo nano /etc/node_exporter
 
+
+
 OPTIONS="–collector.textfile.directory /var/lib/node_exporter/textfile_collector"
 
+
+
 sudo systemctl daemon-reload
+
 sudo systemctl start node_exporter
+
 sudo systemctl status node_exporter
+
 vagrant@vagrant:~$ sudo systemctl status node_exporter
 ● node_exporter.service - Node Exporter
      Loaded: loaded (/etc/systemd/system/node_exporter.service; disabled; vendor preset: enabled)
@@ -35,15 +58,25 @@ vagrant@vagrant:~$ sudo systemctl status node_exporter
              └─1355 /usr/local/bin/node_exporter --collector.textfile.directory /var/lib/node_exporter/textfile_c>
 
 Jun 15 18:41:40 vagrant node_exporter[1355]: level=info ts=2021-06-15T18:41:40.999Z caller=node_exporter.go:113 c>
+
 Jun 15 18:41:41 vagrant node_exporter[1355]: level=info ts=2021-06-15T18:41:41.000Z caller=node_exporter.go:113 c>
+
 Jun 15 18:41:41 vagrant node_exporter[1355]: level=info ts=2021-06-15T18:41:41.000Z caller=node_exporter.go:113 c>
+
 Jun 15 18:41:41 vagrant node_exporter[1355]: level=info ts=2021-06-15T18:41:41.000Z caller=node_exporter.go:113 c>
+
 Jun 15 18:41:41 vagrant node_exporter[1355]: level=info ts=2021-06-15T18:41:41.000Z caller=node_exporter.go:113 c>
+
 Jun 15 18:41:41 vagrant node_exporter[1355]: level=info ts=2021-06-15T18:41:41.000Z caller=node_exporter.go:113 c>
+
 Jun 15 18:41:41 vagrant node_exporter[1355]: level=info ts=2021-06-15T18:41:41.000Z caller=node_exporter.go:113 c>
+
 Jun 15 18:41:41 vagrant node_exporter[1355]: level=info ts=2021-06-15T18:41:41.000Z caller=node_exporter.go:113 c>
+
 Jun 15 18:41:41 vagrant node_exporter[1355]: level=info ts=2021-06-15T18:41:41.001Z caller=node_exporter.go:195 m>
+
 Jun 15 18:41:41 vagrant node_exporter[1355]: level=info ts=2021-06-15T18:41:41.001Z caller=tls_config.go:191 msg=>
+
 
 
 2.	Ознакомьтесь с опциями node_exporter и выводом /metrics по-умолчанию. Приведите несколько опций, которые вы бы выбрали для базового мониторинга хоста по CPU, памяти, диску и сети.
@@ -88,6 +121,54 @@ node_softnet_times_squeezed_total{cpu="0"} 0
 # TYPE process_cpu_seconds_total counter
 process_cpu_seconds_total 0
 100 58024    0 58024    0     0  3148k      0 --:--:-- --:--:-- --:--:-- 3148k
+
+
+upd1
+vagrant@vagrant:~$ curl http://localhost:9100/metrics |grep eth
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0node_arp_entries{device="eth0"} 1
+# HELP node_filesystem_device_error Whether an error occurred while getting statistics for the given device.
+node_network_address_assign_type{device="eth0"} 0
+node_network_carrier{device="eth0"} 1
+node_network_carrier_changes_total{device="eth0"} 2
+node_network_carrier_down_changes_total{device="eth0"} 1
+node_network_carrier_up_changes_total{device="eth0"} 1
+node_network_device_id{device="eth0"} 0
+node_network_dormant{device="eth0"} 0
+node_network_flags{device="eth0"} 4099
+node_network_iface_id{device="eth0"} 2
+node_network_iface_link{device="eth0"} 2
+node_network_iface_link_mode{device="eth0"} 0
+node_network_info{address="08:00:27:14:86:db",broadcast="ff:ff:ff:ff:ff:ff",device="eth0",duplex="full",ifalias="",operstate="up"} 1
+node_network_mtu_bytes{device="eth0"} 1500
+node_network_net_dev_group{device="eth0"} 0
+node_network_protocol_type{device="eth0"} 1
+node_network_receive_bytes_total{device="eth0"} 93315
+node_network_receive_compressed_total{device="eth0"} 0
+node_network_receive_drop_total{device="eth0"} 0
+node_network_receive_errs_total{device="eth0"} 0
+node_network_receive_fifo_total{device="eth0"} 0
+node_network_receive_frame_total{device="eth0"} 0
+node_network_receive_multicast_total{device="eth0"} 0
+node_network_receive_packets_total{device="eth0"} 973
+node_network_speed_bytes{device="eth0"} 1.25e+08
+node_network_transmit_bytes_total{device="eth0"} 107647
+node_network_transmit_carrier_total{device="eth0"} 0
+node_network_transmit_colls_total{device="eth0"} 0
+node_network_transmit_compressed_total{device="eth0"} 0
+node_network_transmit_drop_total{device="eth0"} 0
+node_network_transmit_errs_total{device="eth0"} 0
+node_network_transmit_fifo_total{device="eth0"} 0
+node_network_transmit_packets_total{device="eth0"} 784
+node_network_transmit_queue_length{device="eth0"} 1000
+node_network_up{device="eth0"} 1
+# HELP node_scrape_collector_success node_exporter: Whether a collector succeeded.
+100 58085    0 58085    0     0  2985k      0 --:--:-- --:--:-- --:--:-- 2985k
+
+
+
+
 
 
 3.	Установите в свою виртуальную машину Netdata. Воспользуйтесь готовыми пакетами для установки (sudo apt install -y netdata). После успешной установки:
