@@ -44,12 +44,19 @@ UNCONN          0               0                        127.0.0.53%lo:domain   
 7.	Обладая знаниями о том, как штатным образом завершается соединение (FIN от инициатора, FIN-ACK от ответчика, ACK от инициатора), опишите в каких состояниях будет находиться TCP соединение в каждый момент времени на клиенте и на сервере при завершении. Схема переходов состояния соединения вам в этом поможет.
 
 
-                  Client			Server
-               Established		Established
->> FIN		FIN WAIT 1	>	CLOSE WAIT
-<< FIN-ACC	FIN WAIT 2	>	CLOSE WAIT
->> ACK		TIME WAIT	<	LAST ACK
-		Closed			Closed
+                	  Client		Server
+
+        	       Established		Established
+
+	>> FIN		FIN WAIT 1	>	CLOSE WAIT
+
+	<< FIN-ACC	FIN WAIT 2	>	CLOSE WAIT
+
+	>> ACK		TIME WAIT	<	LAST ACK
+
+			Closed			Closed
+
+
 
 
 
@@ -74,39 +81,64 @@ UNCONN          0               0                        127.0.0.53%lo:domain   
 Я бы использовал TCP, гарантированная доставка пакетов для событий критична(смотря каких событий конечно :) ). Например, из-за перегрузки сети можно потерять события.
 
 SYSLOG поддерживает и UDP (514 порт) и TCP (1468 порт).
+
 Имеет несколько недостатков:
+
 Проблема согласованности – протокол не определяет способ форматирования событий;
+
 Проблема безопасности – в сообщениях syslog отсутствует аутентификация;
+
 Проблема с доставкой – при использовании UDP нет гарантий получения событий
+
+
 
 
 12.	Сколько портов TCP находится в состоянии прослушивания на вашей виртуальной машине с Ubuntu, и каким процессам они принадлежат?
 
 vagrant@vagrant:~$ sudo ss state listening -t -p –numeric
+
 Recv-Q   Send-Q     Local Address:Port       Peer Address:Port   Process                                                     
+
 0        4096             0.0.0.0:111             0.0.0.0:*       users:(("rpcbind",pid=555,fd=4),("systemd",pid=1,fd=35))   
+
 0        4096       127.0.0.53%lo:53              0.0.0.0:*       users:(("systemd-resolve",pid=556,fd=13))                  
+
 0        128              0.0.0.0:22              0.0.0.0:*       users:(("sshd",pid=807,fd=3))                              
+
 0        4096                [::]:111                [::]:*       users:(("rpcbind",pid=555,fd=6),("systemd",pid=1,fd=37))   
+
 0        128                 [::]:22                 [::]:*       users:(("sshd",pid=807,fd=4))               
 
+
 Можно еще попробовать по каждому порту посмотреть:
+
 vagrant@vagrant:~$ sudo lsof -ni :22
+
 COMMAND  PID    USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+
 sshd     807    root    3u  IPv4  24160      0t0  TCP *:ssh (LISTEN)
+
 sshd     807    root    4u  IPv6  24162      0t0  TCP *:ssh (LISTEN)
+
 sshd    1099    root    4u  IPv4  26492      0t0  TCP 10.0.2.15:ssh->10.0.2.2:54049 (ESTABLISHED)
+
 sshd    1146 vagrant    4u  IPv4  26492      0t0  TCP 10.0.2.15:ssh->10.0.2.2:54049 (ESTABLISHED)
+
+
+
 
 13.	Какой ключ нужно добавить в tcpdump, чтобы он начал выводить не только заголовки, но и содержимое фреймов в текстовом виде? А в текстовом и шестнадцатиричном?
 
 Опция -А вывод в тексте ASCII
+
 sudo tcpdump -A -c 1
 
 Опция –x вывод в HEX
+
 sudo tcpdump -x -c 1
 
 Опция -XX вывод HEX и ASCII
+
 sudo tcpdump -XX -c 1
 
 
@@ -115,24 +147,31 @@ sudo tcpdump -XX -c 1
 14.	Попробуйте собрать дамп трафика с помощью tcpdump на основном интерфейсе вашей виртуальной машины и посмотреть его через tshark или Wireshark (можно ограничить число пакетов -c 100). Встретились ли вам какие-то установленные флаги Internet Protocol (не флаги TCP, а флаги IP)? Узнайте, какие флаги бывают. Как на самом деле называется стандарт Ethernet, фреймы которого попали в ваш дамп? Можно ли где-то в дампе увидеть OUI?
 
 Командой поймали 100 пакетов в файл:
+
 sudo tcpdump -i eth0 -tttt -c 100 -w dump.pcap
 
 Опущу пол часа страданий, чтобы из виртуалки Vagrand скопировать файл на хостовую машину:
+
 vagrant scp default:/home/vagrant/dump.pcap /Users/derpanter/Downloads/dump.pcap
 
 
 При разборе дампа встретился только один флаг - не фрагментировать (0 и 1)
 
 3 бита:
+
     0 - зарезервиравано, всегда 0,
+
     1 - указывает на фрагментирование
+
     2 - указывает на конец фрагментированных пакетов
+
 
 
 Ethernet называется Ethernet II
 
 
 OUI увидел в заголовке Ethernet:
+
 Destination: PcsCompu_e3:90:а5 (08:00:27:e3:90:а5)
 
 
