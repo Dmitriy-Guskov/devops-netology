@@ -26,10 +26,13 @@ network limit (MSS 1460 byte, RTT: 2.0 ms, Loss: 10-08 (10-06%)) : 58400.00 Mbit
 network limit (MSS 1460 byte, RTT: 2.0 ms, Loss: 1%) : 58.40 Mbit/sec.
 
 UPD:
+
 network limit (MSS 1460 byte, RTT: 200.0 ms, Loss: 10-08 (10-06%)) : 584.00 Mbit/sec.
+
 network limit (MSS 1460 byte, RTT: 200.0 ms, Loss: 1%) : 0.58 Mbit/sec.
 
 network limit (MSS 1460 byte, RTT: 300.0 ms, Loss: 10-08 (10-06%)) : 389.33 Mbit/sec.
+
 network limit (MSS 1460 byte, RTT: 300.0 ms, Loss: 1%) : 0.39 Mbit/sec.
 
 
@@ -72,10 +75,15 @@ UPD
 ARP участвует! Очистил arp-таблицу и поймал запрос снифером:
 
 vagrant@vagrant:~$ sudo tcpdump -i any arp -nn
+
 tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+
 listening on any, link-type LINUX_SLL (Linux cooked v1), capture size 262144 bytes
+
 07:28:09.724176 ARP, Request who-has 10.0.2.3 tell 10.0.2.15, length 28
+
 07:28:09.724325 ARP, Reply 10.0.2.3 is-at 52:54:00:12:35:03, length 46
+
 
 
 
