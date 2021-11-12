@@ -112,6 +112,20 @@ RUN yum install jenkins java-1.8.0-openjdk-devel -y
 CMD ["/bin/bash"]
 ```
 
+UPD2:
+```
+FROM amazoncorretto
+RUN yum update -y && \
+    yum install wget -y && \
+    wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo && \
+        rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io.key && \
+        yum upgrade -y
+RUN amazon-linux-extras install epel -y
+RUN yum install jenkins java-1.8.0-openjdk-devel -y
+CMD java -jar /usr/lib/jenkins/jenkins.war
+```
+
+
 
 ```
 FROM ubuntu:latest
