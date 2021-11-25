@@ -1,4 +1,4 @@
-ckerfile
+dockerfile
 
 ```
 FROM amazoncorretto
