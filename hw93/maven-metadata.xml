@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata modelVersion="1.1.0">
+  <groupId>netology</groupId>
+  <artifactId>sonar</artifactId>
+  <versioning>
+    <latest>4.6.2</latest>
+    <release>4.6.2</release>
+    <versions>
+      <version> 4.5.2</version>
+      <version>4.6.2</version>
+    </versions>
+    <lastUpdated>20220216195248</lastUpdated>
+  </versioning>
+</metadata>
